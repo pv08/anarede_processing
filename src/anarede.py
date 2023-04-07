@@ -7,7 +7,8 @@ class Anarede:
         self.assign_value = {'TITU': False, 'DCTE':False,  'DBAR':False, 'DLIN':False}
         self.keywords = {'TITU': '', 'DCTE':[],  'DBAR':[], 'DLIN':[]}
         self.makeDatabase()
-    
+        
+        
     
     def makeDatabase(self):
         file = open(self.file, 'r')
@@ -36,4 +37,4 @@ class Anarede:
 
             if keyword in self.keywords.keys():
                 self.assign_value[keyword] = True            
-        print(self.keywords)
+        
