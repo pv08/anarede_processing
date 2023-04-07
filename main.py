@@ -21,8 +21,10 @@ def main():
     for record in ana_dict.convertedDLIN:
         get_from = record.get('from') - 1
         get_to = record.get('to') - 1
-        impedance_real = record.get('resistence')/ ((record.get('resistence') ** 2) + (record.get('reactance') ** 2))
-        impedance_imag = (record.get('reactance')*(-1))/ ((record.get('resistence') ** 2) + (record.get('reactance') ** 2))
+        resistence = record.get('resistence')/100
+        reactance = record.get('reactance')/100
+        impedance_real = resistence/ ((resistence ** 2) + (reactance ** 2))
+        impedance_imag = (reactance*(-1))/ ((resistence ** 2) + (reactance ** 2))
         matrix[get_from][get_to] = complex(round(impedance_real, 4), round(impedance_imag, 4)) * (-1)
         matrix[get_to][get_from] = complex(round(impedance_real, 4), round(impedance_imag, 4)) * (-1)
         
@@ -38,6 +40,7 @@ def main():
     for line in matrix.keys():
         latex_str += str(matrix[line]).replace(', ', ' & ') + "\\"
     latex_str = r"$\begin{vmatrix}" + latex_str[:-1] + r"\end{vmatrix}$"
+    print(latex_str)
 
 if __name__ == "__main__":
     main()
