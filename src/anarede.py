@@ -37,7 +37,7 @@ class Anarede(AnaredeDict):
     @staticmethod
     def return_susceptance_shunt(value, base):
         try:
-            return complex(0, (value/2*base))
+            return complex(0, (value/(2*base)))
         except:
             return complex(0, 0)
 

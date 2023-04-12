@@ -11,7 +11,6 @@ def write_json(arr, name):
         json_file.write(json.dumps(arr, indent=4))
 
 
-
 def write_csv(dictionary, name):
     df = pd.DataFrame(dictionary)
     df.to_csv(f"{name}", index=False)
