@@ -1,7 +1,7 @@
 import argparse
 from src.anarede import Anarede
 from src.utils.ana_dict import AnaredeDict
-from src.utils.functions import write_json
+from src.utils.functions import write_json, write_csv
 
 def main():
     args = argparse.ArgumentParser()
@@ -14,7 +14,7 @@ def main():
     write_json(ana_dict.convertedDBAR, 'DBAR')
     write_json(ana_dict.convertedDLIN, 'DLIN')
 
-    matrix = {i:  [0 for j in range(0, len(ana_dict.convertedDBAR))] for i in range(0, len(ana_dict.convertedDBAR))}
+    matrix = {i:  [complex(round(0, 4), round(0, 4)) for j in range(0, len(ana_dict.convertedDBAR))] for i in range(0, len(ana_dict.convertedDBAR))}
     change = ana_dict.convertedDLIN[0].get('from') - 1
     soma_real = 0
     soma_img = 0
@@ -36,11 +36,8 @@ def main():
 
         soma_real += impedance_real
         soma_img += impedance_imag
-    latex_str = ''
-    for line in matrix.keys():
-        latex_str += str(matrix[line]).replace(', ', ' & ') + "\\"
-    latex_str = r"$\begin{vmatrix}" + latex_str[:-1] + r"\end{vmatrix}$"
-    print(latex_str)
-
+    for bar in matrix.keys():
+        print(f"{bar}: {matrix[bar]}")
+    write_csv(matrix, 'y_barra')
 if __name__ == "__main__":
     main()

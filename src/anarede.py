@@ -15,7 +15,6 @@ class Anarede:
         for line in file:
             value = line
             keyword = line.rstrip()
-            print(line, end='')
             if self.assign_value['TITU']:
                 self.keywords['TITU'] = keyword
                 self.assign_value['TITU'] = False
