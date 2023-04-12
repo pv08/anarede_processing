@@ -4,7 +4,7 @@ Intend to execute the code, just use
 python main.py
 ```
 
-This code utilizes the `.pwf` file that must be inside the `data` folder. After you put it inside the folder, use the parameter `--file`. But don't worry, there's a file there already based on the IEEE-24 bars sample.
+This code utilizes the `.pwf` file that must be inside the `data` folder. After you put it inside the folder, use the parameter `--file`. But don't worry, there's a file already based on the IEEE-24 bars sample.
 
 ```cmd
 python main.py --file data/file.pwf
