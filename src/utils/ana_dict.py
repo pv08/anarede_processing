@@ -1,12 +1,11 @@
 
 class AnaredeDict:
-    def __init__(self, DCTE, DBAR, DLIN):
-        self.DCTE = DCTE
+    def __init__(self):
+        
         self.DCTE_cols = {
             'name': {'ref':(0, 4), 'type': str},
             'value': {'ref': (5, 11), 'type': float}
         }
-        self.DBAR = DBAR
         self.DBAR_cols = {
             'number': {'ref': (0, 5), 'type': int},
             'operation': {'ref': (5, 6), 'type': str},
@@ -28,7 +27,7 @@ class AnaredeDict:
             'area': {'ref': (73, 76), 'type': float},
             'definition_tension': {'ref': (76, 80), 'type': float}
         }
-        self.DLIN = DLIN
+        
         self.DLIN_cols = {
             'from': {'ref': (0, 5), 'type': int},
             'state_from': {'ref': (5, 6), 'type': str},
@@ -47,14 +46,7 @@ class AnaredeDict:
             'max_tap': {'ref': (48, 53), 'type': float},
             'lag': {'ref': (53, 58), 'type': float}
         }
-    
-    def convertRecords(self):
-        self.convertedDCTE = self.catchValues(self.DCTE, self.DCTE_cols)
-        
-        self.convertedDBAR = self.catchValues(self.DBAR, self.DBAR_cols)
-        
-        self.convertedDLIN = self.catchValues(self.DLIN, self.DLIN_cols)
-        
+           
 
     
     
