@@ -119,14 +119,14 @@ class Anarede(AnaredeDict):
                 reactance = record.get('reactance')/100
                 
                 susceptance = self.return_susceptance_shunt(value=record.get('susceptance'), base=100)
-                admirance = self.return_admitance(resistence=resistence, reactance=reactance)
+                admitance = self.return_admitance(resistence=resistence, reactance=reactance)
 
                 if type(record.get('tap')) == float:
                     if line == get_from:
-                        B = self.return_transformer_B(value=admirance, tap=record.get('tap'))
+                        B = self.return_transformer_B(value=admitance, tap=record.get('tap'))
                         self.y_bus[line][line] += susceptance + B
                     if line == get_to:
-                        C = self.return_transformer_C(value=admirance, tap=record.get('tap'))
+                        C = self.return_transformer_C(value=admitance, tap=record.get('tap'))
                         self.y_bus[line][line] += susceptance + C
                 else:
                     if line == get_from or line == get_to:
