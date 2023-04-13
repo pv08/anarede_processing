@@ -24,15 +24,15 @@ class Anarede(AnaredeDict):
         print(f"[+] - DLIN exported on etc/DLIN.json")
 
         self.y_bus = {i:  [complex(0, 0) for j in range(0, len(self.DBAR))] for i in range(0, len(self.DBAR))}
-        self.create_triangular_impedances()
+        self.create_triangular_admitance()
         self.create_principal_diagonal()
             
 
     @staticmethod
-    def return_impedance(resistence, reactance):
-        impedance_real = resistence/ ((resistence ** 2) + (reactance ** 2))
-        impedance_imag = (reactance*(-1))/ ((resistence ** 2) + (reactance ** 2))
-        return complex(impedance_real, impedance_imag)
+    def return_admitance(resistence, reactance):
+        admitance_real = resistence/ ((resistence ** 2) + (reactance ** 2))
+        admitance_imag = (reactance*(-1))/ ((resistence ** 2) + (reactance ** 2))
+        return complex(admitance_real, admitance_imag)
 
     @staticmethod
     def return_susceptance_shunt(value, base):
@@ -86,23 +86,23 @@ class Anarede(AnaredeDict):
             if keyword in self.keywords.keys():
                 self.assign_value[keyword] = True            
     
-    def create_triangular_impedances(self):
+    def create_triangular_admitance(self):
         for record in self.DLIN:
             get_from = record.get('from') - 1
             get_to = record.get('to') - 1
             resistence = record.get('resistence')/100
             reactance = record.get('reactance')/100
 
-            impedance = self.return_impedance(resistence=resistence, reactance=reactance)
+            admitance = self.return_admitance(resistence=resistence, reactance=reactance)
             
             if type(record.get('tap')) == float: #has a transformer
-                impedance = self.return_transformer_relation(value=impedance, tap=record.get('tap'))
-                self.y_bus[get_from][get_to] += impedance * (-1)
-                self.y_bus[get_to][get_from] += impedance * (-1)
+                admitance = self.return_transformer_relation(value=admitance , tap=record.get('tap'))
+                self.y_bus[get_from][get_to] += admitance  * (-1)
+                self.y_bus[get_to][get_from] += admitance  * (-1)
                 
             else:
-                self.y_bus[get_from][get_to] += impedance * (-1)
-                self.y_bus[get_to][get_from] += impedance * (-1)
+                self.y_bus[get_from][get_to] += admitance  * (-1)
+                self.y_bus[get_to][get_from] += admitance  * (-1)
     
     def create_principal_diagonal(self):
         for line, bar in zip(self.y_bus.keys(), self.DBAR):
@@ -119,14 +119,14 @@ class Anarede(AnaredeDict):
                 reactance = record.get('reactance')/100
                 
                 susceptance = self.return_susceptance_shunt(value=record.get('susceptance'), base=100)
-                impedance = self.return_impedance(resistence=resistence, reactance=reactance)
+                admirance = self.return_admitance(resistence=resistence, reactance=reactance)
 
                 if type(record.get('tap')) == float:
                     if line == get_from:
-                        B = self.return_transformer_B(value=impedance, tap=record.get('tap'))
+                        B = self.return_transformer_B(value=admirance, tap=record.get('tap'))
                         self.y_bus[line][line] += susceptance + B
                     if line == get_to:
-                        C = self.return_transformer_C(value=impedance, tap=record.get('tap'))
+                        C = self.return_transformer_C(value=admirance, tap=record.get('tap'))
                         self.y_bus[line][line] += susceptance + C
                 else:
                     if line == get_from or line == get_to:
