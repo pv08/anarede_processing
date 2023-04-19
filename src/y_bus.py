@@ -66,7 +66,7 @@ class YBus:
         for line, bar in zip(range(0, len(self.y_bus)), self.DBAR):
             if type(bar.get('capacitor')) == float:
                 capacitance = self.return_capacitor(value=bar.get('capacitor'), base=100, tension=bar.get(
-                    'tension')/1000)  # TODO{Verificar o uso de 1 para a tensão}
+                    'tension')/1000)
                 self.y_bus[line][line] = (sum(self.y_bus[line]) * (-1)) + capacitance
             else:
                 self.y_bus[line][line] = sum(self.y_bus[line]) * (-1)

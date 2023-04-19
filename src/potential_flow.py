@@ -1,35 +1,34 @@
 import numpy as np
-from src.utils.functions import convert_to_float
+from src.utils.functions import convert_to_float, write_json, write_csv, mkdir_if_not_exists
 from numpy import cos, sin
 
 class PotentialFlow:
-    def __init__(self, DCTE, DLIN, DBAR, y_bus):
+    def __init__(self, DCTE, DLIN, DBAR, y_bus, max_iter):
         self.DCTE = DCTE
         self.DLIN = DLIN
         self.DBAR = DBAR
         self.y_bus = y_bus
+        self.max_iter = max_iter
         self.sys_data = {}
         self.convergence = []
+        print("*************** PowerFlow ******************")
         self.potential_flow()
+        mkdir_if_not_exists('results/potential_flow')
+        print("[!] - Bar's final data exported to 'results/potential_flow/bars_final_data.json'")
+        write_json(self.sys_data, 'results/potential_flow/bars_final_data.json')
+        write_csv(self.convergence, 'results/potential_flow/convergence_report.csv')
+        print("[!] - Convergence report exported to 'results/potential_flow/convergence_report.csv'")
 
-
-
-        #TODO{1º - Montar o número de equações e icognitas pelo DBAR e printar (ex: 2NPQ + NPV)}
-
-
-
-
-
-
-    @staticmethod
-    def is_linked(b, g):
-        if g == 0 and b == 0:
-            return False
-        return True
     @staticmethod
     def return_value_pu(value, base):
         return value/base
 
+    def update_O_V(self, O_arr, V_arr):
+        for bar in self.sys_data.keys():
+            self.sys_data[bar]['O'] += O_arr[bar]
+
+        for bar in self.sys_data.keys():
+            self.sys_data[bar]['V'] += V_arr[bar]
 
     def calc_potential(self, k, V_k, O_k, active=True):
         potential_calc = 0.0
@@ -40,7 +39,6 @@ class PotentialFlow:
             O = O_k - self.sys_data[bar]['O']
             if active:
                 potential_calc += V_m * ((G_km * cos(O)) + (B_km * sin(O)))
-
             else:
                 potential_calc += V_m * ((G_km * sin(O)) - (B_km * cos(O)))
         potential_calc *= V_k
@@ -60,28 +58,30 @@ class PotentialFlow:
         h = 0
 
         while self.not_converged():
-            self.convergence.append({
+            iteration = {
                 'iter': h,
                 'convP': max(abs(self.dPs)),
                 'P_bus': np.argmax(abs(self.dPs)),
                 'convQ': max(abs(self.dQs)),
                 'Q_bus': np.argmax(abs(self.dQs))
-            })
+            }
+            print(f"[*] - iteration: {iteration['iter']} | P_Bar[Num - {iteration['P_bus'] + 1}]: {iteration['convP']*100} MW | Q_Bar[Num - {iteration['Q_bus'] + 1}]: {iteration['convQ']*100} MVAr")
+            self.convergence.append(iteration)
+
             jacobiana = self.find_jacobiana_matrix()
 
             iteration_state = np.linalg.solve(jacobiana, self.dPQY)
             O_values = iteration_state[: len(self.sys_data.keys())]
             V_values = iteration_state[len(self.sys_data.keys()):]
 
-            for bar in self.sys_data.keys():
-                self.sys_data[bar]['O'] += O_values[bar]
-
-            for bar in self.sys_data.keys():
-                self.sys_data[bar]['V'] += V_values[bar]
+            self.update_O_V(O_arr=O_values, V_arr=V_values)
 
             self.make_d()
 
             h += 1
+
+            if h >= self.max_iter:
+                raise EOFError("*************** Divergent System ******************")
 
         self.convergence.append({
             'iter': h,
@@ -96,32 +96,23 @@ class PotentialFlow:
         O_values = iteration_state[: len(self.sys_data.keys())]
         V_values = iteration_state[len(self.sys_data.keys()):]
 
-        for bar in self.sys_data.keys():
-            self.sys_data[bar]['O'] += O_values[bar]
-
-        for bar in self.sys_data.keys():
-            self.sys_data[bar]['V'] += V_values[bar]
+        self.update_O_V(O_arr=O_values, V_arr=V_values)
 
         self.make_d()
+        print("*************** Converged System ******************")
 
-
-        print(h, self.sys_data)
 
 
     def make_initial_data(self):
         for bar, idx in zip(self.DBAR, range(0, len(self.DBAR))):
             #load PQ
-            P_g = self.return_value_pu(convert_to_float(value=bar.get('active_generation')), base=100) #potencia at gerada
-            P_d = self.return_value_pu(convert_to_float(value=bar.get('active_load')), base=100) #potencia at demandada
+            P_g = self.return_value_pu(value=convert_to_float(value=bar.get('active_generation')), base=100) #potencia at gerada
+            P_d = self.return_value_pu(value=convert_to_float(value=bar.get('active_load')), base=100) #potencia at demandada
             P_esp = P_g - P_d
-            # P_calc = self.calc_potential(k=idx, V_k=1.0, O_k=0.0)
-            # dP = P_esp - P_calc
 
-            Q_g = self.return_value_pu(value=convert_to_float(bar.get('reactive_generation')), base=100) #potencia re gerada
-            Q_d = self.return_value_pu(value=convert_to_float(bar.get('reactive_load')), base=100) #potencia re gerada
+            Q_g = self.return_value_pu(value=convert_to_float(value=bar.get('reactive_generation')), base=100) #potencia re gerada
+            Q_d = self.return_value_pu(value=convert_to_float(value=bar.get('reactive_load')), base=100) #potencia re gerada
             Q_esp = Q_g - Q_d
-            # Q_calc = self.calc_potential(k=idx, V_k=1.0, O_k=0.0, active=False)
-            # dQ = Q_esp - Q_calc
 
             self.sys_data[idx] = {
                 "P": P_esp,
@@ -150,17 +141,22 @@ class PotentialFlow:
             if type(bar['type']) is str or bar['type'] == 3:
                 Q_calc = self.calc_potential(k=idx, V_k=self.sys_data[idx]['V'], O_k=self.sys_data[idx]['O'], active=False)
                 self.sys_data[idx]['dQ'] = self.sys_data[idx]['Q'] - Q_calc
-        self.dPs = np.array([self.sys_data[value]['dP']for value in self.sys_data.keys()])
+        self.dPs = np.array([self.sys_data[value]['dP'] for value in self.sys_data.keys()])
         self.dQs = np.array([self.sys_data[value]['dQ'] for value in self.sys_data.keys()])
         self.dPQY = np.concatenate((self.dPs, self.dQs))
 
 
-    def define_H(self, k, m):
+    def return_base_comp(self, k, m):
         V_k = self.sys_data[k]['V']
         V_m = self.sys_data[m]['V']
         G_km = self.y_bus[k][m].real
         B_km = self.y_bus[k][m].imag
         O_km = self.sys_data[k]['O'] - self.sys_data[m]['O']
+        return V_k, V_m, G_km, B_km, O_km
+
+
+    def define_H(self, k, m):
+        V_k, V_m, G_km, B_km, O_km = self.return_base_comp(k, m)
         if k != m:
             H_km = V_k * V_m * ((G_km * sin(O_km)) - (B_km * cos(O_km)))
             return H_km
@@ -168,11 +164,7 @@ class PotentialFlow:
         H_kk = ((-(V_k ** 2) * B_kk) - self.calc_potential(k, V_k, self.sys_data[k]['O'], active=False))
         return H_kk
     def define_N(self, k, m):
-        V_k = self.sys_data[k]['V']
-        V_m = self.sys_data[m]['V']
-        G_km = self.y_bus[k][m].real
-        B_km = self.y_bus[k][m].imag
-        O_km = self.sys_data[k]['O'] - self.sys_data[m]['O']
+        V_k, V_m, G_km, B_km, O_km = self.return_base_comp(k, m)
         if k != m:
             N_km = V_m * ((G_km * cos(O_km)) + (B_km * sin(O_km)))
             return N_km
@@ -180,11 +172,7 @@ class PotentialFlow:
         N_kk = (self.calc_potential(k, V_k, self.sys_data[k]['O']) + ((V_k ** 2) * G_kk)) / V_k
         return N_kk
     def define_M(self, k, m):
-        V_k = self.sys_data[k]['V']
-        V_m = self.sys_data[m]['V']
-        G_km = self.y_bus[k][m].real
-        B_km = self.y_bus[k][m].imag
-        O_km = self.sys_data[k]['O'] - self.sys_data[m]['O']
+        V_k, V_m, G_km, B_km, O_km = self.return_base_comp(k, m)
         if k != m:
             M_km = -V_k * V_m * ((G_km * cos(O_km)) + (B_km * sin(O_km)))
             return M_km
@@ -192,11 +180,7 @@ class PotentialFlow:
         M_kk = self.calc_potential(k, V_k, self.sys_data[k]['O']) - ((V_k ** 2) * G_kk)
         return M_kk
     def define_L(self, k, m):
-        V_k = self.sys_data[k]['V']
-        V_m = self.sys_data[m]['V']
-        G_km = self.y_bus[k][m].real
-        B_km = self.y_bus[k][m].imag
-        O_km = self.sys_data[k]['O'] - self.sys_data[m]['O']
+        V_k, V_m, G_km, B_km, O_km = self.return_base_comp(k, m)
         if k != m:
             L_km = V_k * ((G_km * sin(O_km)) - (B_km * cos(O_km)))
             return L_km

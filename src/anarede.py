@@ -26,7 +26,7 @@ class Anarede(AnaredeDict):
         print(f"[+] - DLIN exported on etc/DLIN.json")
 
         self.y_bus = YBus(DBAR=self.DBAR, DLIN=self.DLIN)
-        potential = PotentialFlow(DCTE=self.DCTE, DLIN=self.DLIN, DBAR=self.DBAR, y_bus=self.y_bus.y_bus)
+        potential = PotentialFlow(DCTE=self.DCTE, DLIN=self.DLIN, DBAR=self.DBAR, y_bus=self.y_bus.y_bus, max_iter=self.args.max_iter)
 
 
 
