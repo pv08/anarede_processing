@@ -15,3 +15,9 @@ def write_csv(dictionary, name):
     df = pd.DataFrame(dictionary)
     df.to_csv(f"{name}", index=False)
     print(df)
+
+def convert_to_float(value):
+    try:
+        return float(value)
+    except:
+        return 0.0

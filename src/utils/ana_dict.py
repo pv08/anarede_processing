@@ -1,7 +1,11 @@
 
 class AnaredeDict:
     def __init__(self):
-        
+        self.bar_types = {
+            str: 'PQ',
+            1: 'PV',
+            2: 'VO'
+        }
         self.DCTE_cols = {
             'name': {'ref':(0, 4), 'type': str},
             'value': {'ref': (5, 11), 'type': float}

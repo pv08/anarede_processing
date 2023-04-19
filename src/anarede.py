@@ -1,5 +1,7 @@
 import os
 from src.utils.ana_dict import AnaredeDict
+from src.y_bus import YBus
+from src.potential_flow import PotentialFlow
 from src.utils.functions import mkdir_if_not_exists, write_json
 
 class Anarede(AnaredeDict):
@@ -23,41 +25,11 @@ class Anarede(AnaredeDict):
         write_json(self.DLIN, 'etc/DLIN.json')
         print(f"[+] - DLIN exported on etc/DLIN.json")
 
-        self.y_bus = {i:  [complex(0, 0) for j in range(0, len(self.DBAR))] for i in range(0, len(self.DBAR))}
-        self.create_triangular_admitance()
-        self.create_principal_diagonal()
-            
+        self.y_bus = YBus(DBAR=self.DBAR, DLIN=self.DLIN)
+        potential = PotentialFlow(DCTE=self.DCTE, DLIN=self.DLIN, DBAR=self.DBAR, y_bus=self.y_bus.y_bus)
 
-    @staticmethod
-    def return_admitance(resistence, reactance):
-        admitance_real = resistence/ ((resistence ** 2) + (reactance ** 2))
-        admitance_imag = (reactance*(-1))/ ((resistence ** 2) + (reactance ** 2))
-        return complex(admitance_real, admitance_imag)
 
-    @staticmethod
-    def return_susceptance_shunt(value, base):
-        try:
-            return complex(0, (value/(2*base)))
-        except:
-            return complex(0, 0)
 
-    @staticmethod
-    def return_transformer_relation(value, tap):
-        return value*tap
-
-    @staticmethod
-    def return_transformer_B(value, tap):
-        return (tap * (tap - 1)) * value
-
-    @staticmethod
-    def return_transformer_C(value, tap):
-        return (1 - tap) * value
-
-    @staticmethod
-    def return_capacitor(value, base, tension):
-        return complex(0, (value/base) * tension)
-
-        
     
     def makeDatabase(self):
         file = open(self.file, 'r')
@@ -86,49 +58,3 @@ class Anarede(AnaredeDict):
             if keyword in self.keywords.keys():
                 self.assign_value[keyword] = True            
     
-    def create_triangular_admitance(self):
-        for record in self.DLIN:
-            get_from = record.get('from') - 1
-            get_to = record.get('to') - 1
-            resistence = record.get('resistence')/100
-            reactance = record.get('reactance')/100
-
-            admitance = self.return_admitance(resistence=resistence, reactance=reactance)
-            
-            if type(record.get('tap')) == float: #has a transformer
-                admitance = self.return_transformer_relation(value=admitance , tap=record.get('tap'))
-                self.y_bus[get_from][get_to] += admitance  * (-1)
-                self.y_bus[get_to][get_from] += admitance  * (-1)
-                
-            else:
-                self.y_bus[get_from][get_to] += admitance  * (-1)
-                self.y_bus[get_to][get_from] += admitance  * (-1)
-    
-    def create_principal_diagonal(self):
-        for line, bar in zip(self.y_bus.keys(), self.DBAR):
-            if type(bar.get('capacitor')) == float:
-                capacitance = self.return_capacitor(value=bar.get('capacitor'), base=100, tension=bar.get('tension'))
-                self.y_bus[line][line] = (sum(self.y_bus[line]) * (-1)) + capacitance
-            else:
-                self.y_bus[line][line] = sum(self.y_bus[line]) * (-1)
-            for record in self.DLIN:
-                get_from = record.get('from') - 1
-                get_to = record.get('to') - 1
-
-                resistence = record.get('resistence')/100
-                reactance = record.get('reactance')/100
-                
-                susceptance = self.return_susceptance_shunt(value=record.get('susceptance'), base=100)
-                admitance = self.return_admitance(resistence=resistence, reactance=reactance)
-
-                if type(record.get('tap')) == float:
-                    if line == get_from:
-                        B = self.return_transformer_B(value=admitance, tap=record.get('tap'))
-                        self.y_bus[line][line] += susceptance + B
-                    if line == get_to:
-                        C = self.return_transformer_C(value=admitance, tap=record.get('tap'))
-                        self.y_bus[line][line] += susceptance + C
-                else:
-                    if line == get_from or line == get_to:
-                        self.y_bus[line][line] += susceptance
-
