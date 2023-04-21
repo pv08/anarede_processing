@@ -1,5 +1,6 @@
 import numpy as np
-from src.utils.functions import convert_to_float, write_json, write_csv, mkdir_if_not_exists
+import math
+from src.utils.functions import convert_to_float, write_json, write_csv, mkdir_if_not_exists, plot_convergence
 from numpy import cos, sin
 
 class PotentialFlow:
@@ -16,8 +17,21 @@ class PotentialFlow:
         mkdir_if_not_exists('results/potential_flow')
         print("[!] - Bar's final data exported to 'results/potential_flow/bars_final_data.json'")
         write_json(self.sys_data, 'results/potential_flow/bars_final_data.json')
+        string = ""
+        for bar in self.sys_data.keys():
+            string += str(bar + 1) + " & " + self.sys_data[bar]['type'] + " & "
+            string += str(round(self.sys_data[bar]['V'], 4)) + r" \angle " + str(round(math.degrees(self.sys_data[bar]['O']), 2)) + "º & "
+            string += str(round(self.sys_data[bar]['P'] * 100, 2)) + " & " + str(round(self.sys_data[bar]['Q'] * 100, 2)) + r" \\ "
+            string += "\n"
+        print(string)
         write_csv(self.convergence, 'results/potential_flow/convergence_report.csv')
         print("[!] - Convergence report exported to 'results/potential_flow/convergence_report.csv'")
+
+        iteration_arr = [value['iter'] for value in self.convergence]
+        P_arr = [(value['convP'], value['P_bus']) for value in self.convergence]
+        Q_arr = [(value['convQ'], value['Q_bus']) for value in self.convergence]
+        plot_convergence(iteration_arr, P_arr, Q_arr)
+
 
     @staticmethod
     def return_value_pu(value, base):
@@ -53,6 +67,10 @@ class PotentialFlow:
     def potential_flow(self):
         #inicia os valores
         self.make_initial_data()
+        PQs = [True if self.sys_data[i]['type'] == 'PQ' else False for i in self.sys_data.keys()]
+        PVs = [True if self.sys_data[i]['type'] != 'VO' else False for i in self.sys_data.keys()]
+
+        print(f"[!] - {PQs.count(True)}NPQ + {PVs.count(True)}NPV = {2*PQs.count(True)}")
         #define P e Q and dP e dQ
         self.make_d()
         h = 0
@@ -83,13 +101,16 @@ class PotentialFlow:
             if h >= self.max_iter:
                 raise EOFError("*************** Divergent System ******************")
 
-        self.convergence.append({
+        iteration = {
             'iter': h,
             'convP': max(abs(self.dPs)),
             'P_bus': np.argmax(abs(self.dPs)),
             'convQ': max(abs(self.dQs)),
             'Q_bus': np.argmax(abs(self.dQs))
-        })
+        }
+        print(
+            f"[*] - iteration: {iteration['iter']} | P_Bar[Num - {iteration['P_bus'] + 1}]: {iteration['convP'] * 100} MW | Q_Bar[Num - {iteration['Q_bus'] + 1}]: {iteration['convQ'] * 100} MVAr")
+        self.convergence.append(iteration)
         jacobiana = self.find_jacobiana_matrix()
 
         iteration_state = np.linalg.solve(jacobiana, self.dPQY)
@@ -99,6 +120,8 @@ class PotentialFlow:
         self.update_O_V(O_arr=O_values, V_arr=V_values)
 
         self.make_d()
+
+
         print("*************** Converged System ******************")
 
 
@@ -144,6 +167,8 @@ class PotentialFlow:
         self.dPs = np.array([self.sys_data[value]['dP'] for value in self.sys_data.keys()])
         self.dQs = np.array([self.sys_data[value]['dQ'] for value in self.sys_data.keys()])
         self.dPQY = np.concatenate((self.dPs, self.dQs))
+
+
 
 
     def return_base_comp(self, k, m):
