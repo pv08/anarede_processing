@@ -1,3 +1,5 @@
+# Adaptado de https://github.com/joaoppeters/PyANA
+
 import numpy as np
 import math
 from src.utils.functions import convert_to_float, write_json, write_csv, mkdir_if_not_exists, plot_convergence
@@ -18,12 +20,12 @@ class PotentialFlow:
         print("[!] - Bar's final data exported to 'results/potential_flow/bars_final_data.json'")
         write_json(self.sys_data, 'results/potential_flow/bars_final_data.json')
         string = ""
-        for bar in self.sys_data.keys():
-            string += str(bar + 1) + " & " + self.sys_data[bar]['type'] + " & "
-            string += str(round(self.sys_data[bar]['V'], 4)) + r" \angle " + str(round(math.degrees(self.sys_data[bar]['O']), 2)) + "º & "
-            string += str(round(self.sys_data[bar]['P'] * 100, 2)) + " & " + str(round(self.sys_data[bar]['Q'] * 100, 2)) + r" \\ "
-            string += "\n"
-        print(string)
+        # for bar in self.sys_data.keys():
+        #     string += str(bar + 1) + " & " + self.sys_data[bar]['type'] + " & "
+        #     string += str(round(self.sys_data[bar]['V'], 4)) + r" \angle " + str(round(math.degrees(self.sys_data[bar]['O']), 2)) + "º & "
+        #     string += str(round(self.sys_data[bar]['P'] * 100, 2)) + " & " + str(round(self.sys_data[bar]['Q'] * 100, 2)) + r" \\ "
+        #     string += "\n"
+        # print(string)
         write_csv(self.convergence, 'results/potential_flow/convergence_report.csv')
         print("[!] - Convergence report exported to 'results/potential_flow/convergence_report.csv'")
 
